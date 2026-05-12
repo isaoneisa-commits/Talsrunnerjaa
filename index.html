@@ -3,165 +3,299 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HOF Team Management System</title>
+    <title>Talesrunner Team Dashboard</title>
+    
+    <!-- 1. Tailwind CSS สำหรับการตกแต่ง -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- 2. React และ Libraries ที่จำเป็น -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    
+    <!-- 3. Babel สำหรับแปลง JSX ให้ Browser อ่านออก -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <!-- 4. Recharts สำหรับวาดกราฟ -->
     <script src="https://unpkg.com/recharts/umd/Recharts.js"></script>
     
+    <!-- 5. Lucide Icons (แก้ไขให้เรียกใช้ผ่านตัวแปร global) -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;700;900&display=swap');
-        body { font-family: 'Kanit', sans-serif; background-color: #f8fafc; }
+        @import url('https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600;800&display=swap');
+        body {
+            font-family: 'Kanit', sans-serif;
+            background-color: #f8fafc;
+        }
+        /* ซ่อน scrollbar สำหรับ Chrome, Safari และ Opera */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
     </style>
 </head>
 <body>
     <div id="root"></div>
 
     <script type="text/babel">
+        // ดึงฟังก์ชันต่างๆ จาก React Global
         const { useState, useEffect } = React;
-        const { Radar, RadarChart, PolarGrid, PolarAngleAxis, ResponsiveContainer } = Recharts;
+        const { 
+            Radar, RadarChart, PolarGrid, PolarAngleAxis, 
+            PolarRadiusAxis, ResponsiveContainer 
+        } = Recharts;
 
-        // รายชื่อทีมตามข้อมูลของคุณ
+        // ดึงไอคอนจาก Lucide
+        const { 
+            Heart, ShieldAlert, MessageSquare, BarChart3, Send, 
+            Award, Users, Zap, Smile, AlertTriangle, UserCircle, 
+            Clock, Info, LogOut, ThumbsUp, ShieldCheck, MessageCircle,
+            Trophy, CheckCircle2, Target, ChevronRight, Plus, Check, UserPlus
+        } = lucide;
+
+        // ข้อมูลผู้ใช้งานจำลอง
         const USERS = [
             { id: 'leader', name: 'หัวหน้าทีม (Leader)', role: 'leader', avatar: '👑', color: 'bg-amber-100 text-amber-700' },
             { id: 'jenny', name: 'เจนนี่', role: 'member', avatar: '👩‍💻', color: 'bg-indigo-100 text-indigo-700' },
             { id: 'benz', name: 'เบนซ์', role: 'member', avatar: '👨‍🎨', color: 'bg-emerald-100 text-emerald-700' },
-            { id: 'lukkaew', name: 'ลูกแก้ว', role: 'member', avatar: '🔮', color: 'bg-rose-100 text-rose-700' }
+            { id: 'lukkaew', name: 'ลูกแก้ว', role: 'member', avatar: '👩‍🎨', color: 'bg-rose-100 text-rose-700' },
         ];
+
+        const DEFAULT_STATS = [
+            { subject: 'Teamwork', A: 80, fullMark: 100 },
+            { subject: 'Efficiency', A: 75, fullMark: 100 },
+            { subject: 'Growth Mindset', A: 85, fullMark: 100 },
+            { subject: 'Curiosity', A: 70, fullMark: 100 },
+        ];
+
+        // --- ส่วนประกอบของ UI ---
+        const NavItem = ({ active, onClick, icon: Icon, label, danger }) => (
+            <button 
+                onClick={onClick}
+                className={`w-full flex items-center space-x-3 px-4 py-3 rounded-2xl transition-all ${
+                    active 
+                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200' 
+                    : danger ? 'text-red-500 hover:bg-red-50' : 'text-slate-500 hover:bg-slate-100'
+                }`}
+            >
+                <Icon size={20} />
+                <span className="font-semibold text-sm">{label}</span>
+            </button>
+        );
 
         const App = () => {
             const [currentUser, setCurrentUser] = useState(null);
             const [activeTab, setActiveTab] = useState('wellness');
             const [selectedMemberId, setSelectedMemberId] = useState('jenny');
-            const [inputText, setInputText] = useState('');
+            const [inputText, setInputText] = useState("");
+            const [activeChatId, setActiveChatId] = useState('jenny');
 
-            // ฟังก์ชันโหลด Icon ของ Lucide
-            useEffect(() => {
-                if (window.lucide) {
-                    window.lucide.createIcons();
-                }
-            }, [currentUser, activeTab]);
+            // สถานะข้อมูลจำลอง
+            const [teamStats, setTeamStats] = useState({
+                jenny: JSON.parse(JSON.stringify(DEFAULT_STATS)),
+                benz: [{ subject: 'Efficiency', A: 60, fullMark: 100 }, { subject: 'Growth Mindset', A: 70, fullMark: 100 }, { subject: 'Curiosity', A: 95, fullMark: 100 }],
+                lukkaew: JSON.parse(JSON.stringify(DEFAULT_STATS)),
+            });
 
-            // หน้า Login
+            const [chatMessages, setChatMessages] = useState({
+                jenny: [{ id: 1, sender: 'leader', text: 'เจนนี่ งานชิ้นนี้ทำได้ดีมากครับ!', timestamp: '10:00' }],
+                benz: [{ id: 1, sender: 'leader', text: 'เบนซ์ ไหวไหม เห็นงานโหลดเยอะ?', timestamp: '11:00' }],
+                lukkaew: []
+            });
+
+            const sendMessage = () => {
+                if (!inputText.trim()) return;
+                const newMessage = {
+                    id: Date.now(),
+                    sender: currentUser.id,
+                    text: inputText,
+                    timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                };
+                setChatMessages(prev => ({
+                    ...prev,
+                    [activeChatId]: [...(prev[activeChatId] || []), newMessage]
+                }));
+                setInputText("");
+            };
+
             if (!currentUser) {
                 return (
-                    <div className="min-h-screen bg-slate-900 flex items-center justify-center p-6">
-                        <div className="max-w-4xl w-full text-center">
-                            <div className="inline-block bg-indigo-600 p-4 rounded-3xl italic font-black text-3xl text-white mb-6 shadow-xl">HOF</div>
-                            <h1 className="text-4xl font-black text-white italic uppercase tracking-tighter mb-12">Talesrunner Team Portal</h1>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                                {USERS.map(user => (
-                                    <button key={user.id} onClick={() => setCurrentUser(user)} className="group bg-slate-800 p-8 rounded-[2.5rem] border border-slate-700 hover:border-indigo-500 transition-all hover:scale-105 shadow-2xl">
-                                        <div className={`w-20 h-20 mx-auto rounded-[1.5rem] ${user.color} flex items-center justify-center text-4xl mb-4`}>{user.avatar}</div>
-                                        <h3 className="text-white font-bold italic">{user.name}</h3>
-                                        <p className="text-[10px] text-slate-500 uppercase font-black mt-1">{user.role}</p>
-                                    </button>
-                                ))}
-                            </div>
+                    <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-6 text-white text-center">
+                        <div className="mb-10">
+                            <h1 className="text-5xl font-black italic tracking-tighter mb-2">Talesrunner Team</h1>
+                            <p className="text-slate-400">ระบบบริหารจัดการทีมและพัฒนาบุคลากร</p>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-2xl">
+                            {USERS.map(user => (
+                                <button 
+                                    key={user.id}
+                                    onClick={() => setCurrentUser(user)}
+                                    className="group relative bg-slate-800 border border-slate-700 p-6 rounded-[2rem] transition-all hover:bg-slate-700 hover:scale-105"
+                                >
+                                    <div className="text-4xl mb-4">{user.avatar}</div>
+                                    <div className="font-bold text-xl">{user.name}</div>
+                                    <div className="text-slate-500 text-sm uppercase tracking-widest">{user.role}</div>
+                                </button>
+                            ))}
                         </div>
                     </div>
                 );
             }
 
             return (
-                <div className="min-h-screen flex flex-col md:flex-row">
+                <div className="flex h-screen overflow-hidden">
                     {/* Sidebar */}
-                    <nav className="w-full md:w-72 bg-slate-900 text-white p-8 flex flex-col shrink-0">
-                        <div className="flex items-center space-x-3 mb-12">
-                            <div className="bg-indigo-600 px-3 py-1 rounded-xl font-black italic text-xl text-white">HOF</div>
-                            <span className="font-black text-xl italic uppercase tracking-tighter text-indigo-400">Management</span>
+                    <aside className="w-64 bg-white border-r border-slate-100 p-6 flex flex-col">
+                        <div className="mb-10 px-4">
+                            <h2 className="text-2xl font-black italic text-indigo-600">HOF TEAM</h2>
                         </div>
                         
-                        <div className="space-y-2 flex-1">
-                            {[
-                                { id: 'wellness', icon: 'zap', label: "Runner's Condition" },
-                                { id: 'chat', icon: 'message-square', label: "Team Chat" },
-                                { id: 'index', icon: 'bar-chart-3', label: "Excellence Index" }
-                            ].map(item => (
-                                <button key={item.id} onClick={() => setActiveTab(item.id)} className={`w-full flex items-center space-x-4 px-6 py-4 rounded-2xl transition-all font-bold ${activeTab === item.id ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-800'}`}>
-                                    <i data-lucide={item.icon} className="w-5 h-5"></i>
-                                    <span className="text-sm uppercase italic">{item.label}</span>
-                                </button>
-                            ))}
-                        </div>
+                        <nav className="flex-1 space-y-2">
+                            <NavItem active={activeTab === 'wellness'} onClick={() => setActiveTab('wellness')} icon={Smile} label="Team Wellness" />
+                            <NavItem active={activeTab === 'performance'} onClick={() => setActiveTab('performance')} icon={BarChart3} label="Performance" />
+                            <NavItem active={activeTab === 'chat'} onClick={() => setActiveTab('chat')} icon={MessageCircle} label="Team Chat" />
+                        </nav>
 
-                        <button onClick={() => setCurrentUser(null)} className="mt-auto flex items-center space-x-3 p-4 bg-slate-800 rounded-2xl hover:bg-rose-900 transition-colors">
-                            <span className="text-xl">{currentUser.avatar}</span>
-                            <span className="flex-1 text-left text-xs font-bold uppercase tracking-wider">Logout</span>
-                            <i data-lucide="log-out" className="w-4 h-4 text-slate-500"></i>
-                        </button>
-                    </nav>
+                        <div className="mt-auto pt-6 border-t border-slate-50">
+                            <div className="flex items-center space-x-3 mb-6 px-4">
+                                <div className="text-2xl">{currentUser.avatar}</div>
+                                <div>
+                                    <p className="text-sm font-bold text-slate-800 leading-none">{currentUser.name}</p>
+                                    <p className="text-[10px] text-slate-400 uppercase tracking-tighter mt-1">{currentUser.role}</p>
+                                </div>
+                            </div>
+                            <NavItem onClick={() => setCurrentUser(null)} icon={LogOut} label="Log out" danger />
+                        </div>
+                    </aside>
 
                     {/* Main Content */}
-                    <main className="flex-1 p-6 md:p-12 overflow-y-auto bg-slate-50">
-                        <header className="mb-10 flex justify-between items-center">
-                            <div>
-                                <h2 className="text-3xl font-black text-slate-800 italic uppercase">{activeTab.replace('-', ' ')}</h2>
-                                <p className="text-slate-400 text-sm font-medium">ยินดีต้อนรับกลับมา, {currentUser.name}</p>
-                            </div>
-                        </header>
+                    <main className="flex-1 overflow-y-auto no-scrollbar bg-slate-50">
+                        <div className="p-10 max-w-6xl mx-auto">
+                            {activeTab === 'wellness' && (
+                                <div className="space-y-8">
+                                    <header>
+                                        <h1 className="text-4xl font-black text-slate-800">Team Wellness</h1>
+                                        <p className="text-slate-400 mt-2">ติดตามความสุขและภาระงานของสมาชิกในทีม</p>
+                                    </header>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                        {/* Mock Wellness Cards */}
+                                        {USERS.filter(u => u.role !== 'leader').map(member => (
+                                            <div key={member.id} className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm">
+                                                <div className="flex items-center space-x-4 mb-6">
+                                                    <div className="text-3xl">{member.avatar}</div>
+                                                    <h3 className="font-bold text-lg">{member.name}</h3>
+                                                </div>
+                                                <div className="space-y-4">
+                                                    <div className="flex justify-between items-center text-sm">
+                                                        <span className="text-slate-500">ความสุขวันนี้</span>
+                                                        <span className="font-bold text-indigo-600">มากที่สุด 😊</span>
+                                                    </div>
+                                                    <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                                                        <div className="bg-indigo-600 h-full w-[90%]"></div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
 
-                        {activeTab === 'wellness' && (
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                <div className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm">
-                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Team Happiness</p>
-                                    <h4 className="text-4xl font-black text-emerald-500 italic">88%</h4>
-                                </div>
-                                <div className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm">
-                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Active Runners</p>
-                                    <h4 className="text-4xl font-black text-indigo-500 italic">3 / 3</h4>
-                                </div>
-                                <div className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm">
-                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Pending Tasks</p>
-                                    <h4 className="text-4xl font-black text-rose-500 italic">12</h4>
-                                </div>
-                            </div>
-                        )}
-
-                        {activeTab === 'index' && (
-                            <div className="bg-white p-10 rounded-[3rem] shadow-sm border border-slate-100 flex flex-col items-center">
-                                <h3 className="text-xl font-black italic uppercase mb-8 self-start">Performance Chart</h3>
-                                <div className="w-full h-80">
-                                    <ResponsiveContainer width="100%" height="100%">
-                                        <RadarChart cx="50%" cy="50%" outerRadius="80%" data={[
-                                            { subject: 'Teamwork', A: 80 },
-                                            { subject: 'Efficiency', A: 90 },
-                                            { subject: 'Growth', A: 70 },
-                                            { subject: 'Curiosity', A: 85 }
-                                        ]}>
-                                            <PolarGrid />
-                                            <PolarAngleAxis dataKey="subject" />
-                                            <Radar name="Stats" dataKey="A" stroke="#4f46e5" fill="#4f46e5" fillOpacity={0.6} />
-                                        </RadarChart>
-                                    </ResponsiveContainer>
-                                </div>
-                            </div>
-                        )}
-
-                        {activeTab === 'chat' && (
-                            <div className="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 h-[500px] flex flex-col">
-                                <div className="p-6 border-b border-slate-50 font-bold italic uppercase text-slate-400 text-xs tracking-widest">
-                                    Internal Team Chat
-                                </div>
-                                <div className="flex-1 p-6 space-y-4 overflow-y-auto">
-                                    <div className="flex justify-start">
-                                        <div className="bg-slate-100 p-4 rounded-2xl rounded-bl-none text-sm font-medium text-slate-700">
-                                            สวัสดีทีมงานทุกคน วันนี้มีอัปเดตงาน TalesRunner นะครับ
+                            {activeTab === 'performance' && (
+                                <div className="space-y-8">
+                                    <header>
+                                        <h1 className="text-4xl font-black text-slate-800">Performance Matrix</h1>
+                                    </header>
+                                    <div className="bg-white p-8 rounded-[3rem] shadow-sm flex flex-col md:flex-row items-center">
+                                        <div className="w-full md:w-1/2 h-80">
+                                            <ResponsiveContainer width="100%" height="100%">
+                                                <RadarChart cx="50%" cy="50%" outerRadius="80%" data={teamStats[selectedMemberId]}>
+                                                    <PolarGrid />
+                                                    <PolarAngleAxis dataKey="subject" />
+                                                    <PolarRadiusAxis angle={30} domain={[0, 100]} />
+                                                    <Radar name="Stats" dataKey="A" stroke="#4f46e5" fill="#4f46e5" fillOpacity={0.6} />
+                                                </RadarChart>
+                                            </ResponsiveContainer>
+                                        </div>
+                                        <div className="w-full md:w-1/2 md:pl-10 mt-8 md:mt-0">
+                                            <h3 className="text-xl font-bold mb-6">เลือกดูสมาชิกทีม</h3>
+                                            <div className="grid grid-cols-1 gap-3">
+                                                {USERS.filter(u => u.role !== 'leader').map(m => (
+                                                    <button 
+                                                        key={m.id}
+                                                        onClick={() => setSelectedMemberId(m.id)}
+                                                        className={`p-4 rounded-2xl flex items-center justify-between border transition-all ${
+                                                            selectedMemberId === m.id ? 'border-indigo-600 bg-indigo-50 text-indigo-700' : 'border-slate-100'
+                                                        }`}
+                                                    >
+                                                        <span className="font-bold">{m.name}</span>
+                                                        <ChevronRight size={18} />
+                                                    </button>
+                                                ))}
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
-                                <div className="p-6 border-t border-slate-50 flex space-x-3">
-                                    <input 
-                                        type="text" 
-                                        placeholder="Type something..." 
-                                        className="flex-1 bg-slate-50 px-6 py-3 rounded-xl outline-none focus:ring-2 ring-indigo-500/20 text-sm font-medium"
-                                    />
-                                    <button className="bg-indigo-600 text-white px-6 py-3 rounded-xl font-black uppercase text-xs">Send</button>
+                            )}
+
+                            {activeTab === 'chat' && (
+                                <div className="h-[600px] bg-white rounded-[3rem] shadow-sm flex overflow-hidden border border-slate-100">
+                                    <div className="w-80 border-r border-slate-50 flex flex-col">
+                                        <div className="p-6 border-b border-slate-50">
+                                            <h3 className="font-black uppercase text-slate-400 text-xs tracking-widest">Messages</h3>
+                                        </div>
+                                        <div className="flex-1 overflow-y-auto">
+                                            {USERS.filter(u => u.id !== currentUser.id).map(u => (
+                                                <button 
+                                                    key={u.id}
+                                                    onClick={() => setActiveChatId(u.id)}
+                                                    className={`w-full p-6 flex items-center space-x-4 transition-all hover:bg-slate-50 ${activeChatId === u.id ? 'bg-indigo-50 border-r-4 border-indigo-600' : ''}`}
+                                                >
+                                                    <div className="text-2xl">{u.avatar}</div>
+                                                    <div className="text-left">
+                                                        <p className="font-bold text-slate-800">{u.name}</p>
+                                                        <p className="text-xs text-slate-400">คลิกเพื่อพูดคุย...</p>
+                                                    </div>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    <div className="flex-1 flex flex-col bg-white">
+                                        <div className="p-6 border-b border-slate-50 flex items-center justify-between">
+                                            <span className="font-bold text-slate-800">กำลังคุยกับ {USERS.find(u => u.id === activeChatId)?.name}</span>
+                                        </div>
+                                        <div className="flex-1 p-8 overflow-y-auto space-y-4 no-scrollbar">
+                                            {(chatMessages[activeChatId] || []).map(msg => (
+                                                <div key={msg.id} className={`flex ${msg.sender === currentUser.id ? 'justify-end' : 'justify-start'}`}>
+                                                    <div className={`max-w-[80%] p-4 rounded-2xl text-sm font-medium ${
+                                                        msg.sender === currentUser.id 
+                                                        ? 'bg-indigo-600 text-white rounded-br-none' 
+                                                        : 'bg-slate-100 text-slate-800 rounded-bl-none'
+                                                    }`}>
+                                                        {msg.text}
+                                                        <div className={`text-[10px] mt-1 ${msg.sender === currentUser.id ? 'text-indigo-200' : 'text-slate-400'}`}>
+                                                            {msg.timestamp}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                        <div className="p-6 border-t border-slate-50">
+                                            <div className="flex bg-slate-50 rounded-2xl p-2 items-center">
+                                                <input 
+                                                    value={inputText} 
+                                                    onChange={(e) => setInputText(e.target.value)} 
+                                                    onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
+                                                    placeholder="พิมพ์ข้อความ..." 
+                                                    className="flex-1 bg-transparent px-4 py-2 outline-none" 
+                                                />
+                                                <button onClick={sendMessage} className="bg-indigo-600 text-white p-3 rounded-xl hover:scale-105 transition-all">
+                                                    <Send size={18} />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
-                        )}
+                            )}
+                        </div>
                     </main>
                 </div>
             );
