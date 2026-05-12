@@ -3,124 +3,111 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Talesrunner HOF Performance System</title>
-    <!-- Tailwind CSS CDN -->
+    <title>HOF - Talesrunner Team Management</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Lucide Icons CDN -->
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <!-- React & ReactDOM CDN -->
-    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-    <!-- Babel for JSX transformation -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <!-- Recharts (requires specialized loading for UMD) -->
+    <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://unpkg.com/recharts/umd/Recharts.js"></script>
-
+    
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Kanit:ital,wght@0,100;0,400;0,900;1,100;1,400;1,900&display=swap');
-        
-        body {
-            font-family: 'Kanit', sans-serif;
-        }
-
-        /* Custom scrollbar for a cleaner look */
-        ::-webkit-scrollbar {
-            width: 6px;
-        }
-        ::-webkit-scrollbar-track {
-            background: transparent;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
-            border-radius: 10px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #94a3b8;
-        }
-
-        /* Range input styling for consistency */
-        input[type=range] {
+        @import url('https://fonts.googleapis.com/css2?family=Kanit:ital,wght@0,400;0,700;0,900;1,900&display=swap');
+        body { font-family: 'Kanit', sans-serif; }
+        input[type="range"]::-webkit-slider-thumb {
             -webkit-appearance: none;
-            width: 100%;
-            background: transparent;
-        }
-        input[type=range]:focus {
-            outline: none;
-        }
-        input[type=range]::-webkit-slider-runnable-track {
-            width: 100%;
-            height: 10px;
-            cursor: pointer;
-            background: #e2e8f0;
-            border-radius: 5px;
-        }
-        input[type=range]::-webkit-slider-thumb {
-            height: 24px;
-            width: 24px;
+            height: 20px;
+            width: 20px;
             border-radius: 50%;
             background: #4f46e5;
             cursor: pointer;
-            -webkit-appearance: none;
-            margin-top: -7px;
-            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+            box-shadow: 0 0 10px rgba(79, 70, 229, 0.4);
         }
     </style>
 </head>
-<body class="bg-slate-50">
+<body>
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useEffect, useRef } = React;
+        const { useState, useEffect } = React;
         const { 
-            Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer 
+            Radar, RadarChart, PolarGrid, PolarAngleAxis, 
+            PolarRadiusAxis, ResponsiveContainer 
         } = Recharts;
 
-        // Constants from original code
+        // ดึง Icon จาก Lucide
+        const Icon = ({ name, size = 20, className = "", fill = "none" }) => {
+            const LucideIcon = lucide.icons[name] || lucide.icons['HelpCircle'];
+            return <i data-lucide={name} style={{ width: size, height: size }} className={className}></i>;
+        };
+
         const USERS = [
-            { id: 'leader', name: 'หัวหน้าทีม (Leader)', role: 'leader', avatar: '👑', password: 'aysha' },
-            { id: 'jenny', name: 'เจนนี่', role: 'member', avatar: '👩‍💻', password: 'Jenny' },
-            { id: 'benz', name: 'เบนซ์', role: 'member', avatar: '👨‍🎨', password: 'Benz' },
-            { id: 'lukkaew', name: 'ลูกแก้ว', role: 'member', avatar: '👩‍🎨', password: 'Kaew' },
+            { id: 'leader', name: 'หัวหน้าทีม (Leader)', role: 'leader', avatar: '👑', color: 'bg-amber-100 text-amber-700' },
+            { id: 'jenny', name: 'เจนนี่', role: 'member', avatar: '👩‍💻', color: 'bg-indigo-100 text-indigo-700' },
+            { id: 'benz', name: 'เบนซ์', role: 'member', avatar: '👨‍🎨', color: 'bg-emerald-100 text-emerald-700' },
+            { id: 'lukkaew', name: 'ลูกแก้ว', role: 'member', avatar: '🔮', color: 'bg-rose-100 text-rose-700' },
         ];
 
         const DEFAULT_STATS = [
             { subject: 'Teamwork', A: 80, fullMark: 100 },
-            { subject: 'Efficiency', A: 80, fullMark: 100 },
-            { subject: 'Growth Mindset', A: 80, fullMark: 100 },
-            { subject: 'Curiosity', A: 80, fullMark: 100 },
+            { subject: 'Efficiency', A: 75, fullMark: 100 },
+            { subject: 'Growth Mindset', A: 85, fullMark: 100 },
+            { subject: 'Curiosity', A: 70, fullMark: 100 },
         ];
 
-        // Component Definitions
-        const Icon = ({ name, size = 20, className = "" }) => {
-            const iconRef = useRef(null);
-            useEffect(() => {
-                if (window.lucide) {
-                    window.lucide.createIcons();
-                }
-            }, [name, size, className]);
-            return <i data-lucide={name} style={{width: size, height: size}} className={className}></i>;
-        };
+        const NavItem = ({ active, onClick, iconName, label, danger }) => (
+            <button onClick={onClick} className={`w-full flex items-center space-x-5 px-6 py-5 rounded-[2rem] transition-all duration-300 font-black group ${active ? (danger ? 'bg-rose-600 text-white shadow-lg' : 'bg-indigo-600 text-white shadow-lg') : 'text-slate-500 hover:bg-slate-800 hover:text-white'}`}>
+                <div className={`${active ? 'scale-125' : 'group-hover:scale-125'} transition-transform duration-300`}>
+                    <Icon name={iconName} />
+                </div>
+                <span className="text-[13px] tracking-tight italic uppercase">{label}</span>
+            </button>
+        );
+
+        const StatusCard = ({ title, count, icon, color }) => (
+            <div className={`p-10 rounded-[3rem] border-2 ${color} flex items-center justify-between shadow-sm transition-all hover:scale-[1.02] cursor-pointer`}>
+                <div>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">{title}</p>
+                    <p className="text-4xl font-black text-slate-800 tracking-tighter italic">{count}</p>
+                </div>
+                <div className="w-16 h-16 bg-white/60 rounded-[2rem] flex items-center justify-center text-4xl shadow-inner border border-white/40">{icon}</div>
+            </div>
+        );
 
         const App = () => {
             const [currentUser, setCurrentUser] = useState(null);
-            const [loginInput, setLoginInput] = useState({ id: '', password: '' });
-            const [loginError, setLoginError] = useState('');
             const [activeTab, setActiveTab] = useState('wellness');
             const [selectedMemberId, setSelectedMemberId] = useState('jenny');
             const [inputText, setInputText] = useState('');
-            const [activeChatId, setActiveChatId] = useState(null);
-            const [praiseTo, setPraiseTo] = useState('');
-            const chatEndRef = useRef(null);
+            const [activeChatId, setActiveChatId] = useState('jenny');
 
-            // Mock Data
-            const [wellnessRecords, setWellnessRecords] = useState([
-                { id: 1, userId: 'jenny', name: 'เจนนี่', happy: 4, stress: 2, load: 5, note: 'งานแก้ด่วนเข้ามาเยอะมากค่ะ', timestamp: '09:00 AM' },
+            const [praiseTo, setPraiseTo] = useState('');
+            const [praiseText, setPraiseText] = useState('');
+            const [praiseFeed, setPraiseFeed] = useState([
+                { id: 1, from: 'หัวหน้าทีม (Leader)', to: 'เจนนี่', text: 'วันนี้พรีเซนต์งานได้เป๊ะมากครับ ภูมิใจสุดๆ!', timestamp: '1 ชม.ที่แล้ว', emoji: '🌟' },
+                { id: 2, from: 'เบนซ์', to: 'ลูกแก้ว', text: 'ขอบคุณที่ช่วยหา Bug นะครับ รอดตายแล้วเรา', timestamp: '2 ชม.ที่แล้ว', emoji: '🙌' }
+            ]);
+
+            const [safeText, setSafeText] = useState('');
+            const [safeReports, setSafeReports] = useState([
+                { id: 1, text: 'ช่วงนี้รู้สึกว่าการประชุมตอนเย็นกินเวลาเลิกงานไปหน่อยครับ', timestamp: 'เมื่อวานนี้', status: 'Received' },
+                { id: 2, text: 'อยากให้ทีมมีบอร์ดแชร์ความรู้กันมากกว่านี้ค่ะ', timestamp: '2 วันที่แล้ว', status: 'In Review' }
+            ]);
+
+            const [wellnessRecords] = useState([
+                { id: 1, userId: 'jenny', name: 'เจนนี่', happy: 4, stress: 2, load: 5, note: 'งานแก้ด่วนเยอะมากค่ะ', timestamp: '09:00 AM' },
                 { id: 2, userId: 'benz', name: 'เบนซ์', happy: 2, stress: 4, load: 3, note: 'นอนน้อย แต่นอนนะ', timestamp: '10:30 AM' },
+                { id: 3, userId: 'lukkaew', name: 'ลูกแก้ว', happy: 5, stress: 1, load: 2, note: 'พลังงานล้นหลาม!', timestamp: '08:45 AM' },
             ]);
 
             const [teamStats, setTeamStats] = useState({
                 jenny: JSON.parse(JSON.stringify(DEFAULT_STATS)),
-                benz: JSON.parse(JSON.stringify(DEFAULT_STATS)),
+                benz: [
+                    { subject: 'Teamwork', A: 90, fullMark: 100 },
+                    { subject: 'Efficiency', A: 60, fullMark: 100 },
+                    { subject: 'Growth Mindset', A: 70, fullMark: 100 },
+                    { subject: 'Curiosity', A: 95, fullMark: 100 },
+                ],
                 lukkaew: JSON.parse(JSON.stringify(DEFAULT_STATS)),
             });
 
@@ -129,34 +116,11 @@
                     { id: 1, sender: 'leader', text: 'เจนนี่ งานชิ้นนี้ทำได้ดีมากครับ!', timestamp: '10:00' },
                     { id: 2, sender: 'jenny', text: 'ขอบคุณค่ะหัวหน้า กำลังปั่นโปรเจกต์ต่อไปอยู่ค่ะ', timestamp: '10:05' }
                 ],
-                benz: [
-                    { id: 1, sender: 'leader', text: 'เบนซ์ ไหวไหม เห็นงานโหลดเยอะ?', timestamp: '11:00' }
-                ],
+                benz: [{ id: 1, sender: 'leader', text: 'เบนซ์ ไหวไหม เห็นงานโหลดเยอะ?', timestamp: '11:00' }],
                 lukkaew: []
             });
 
-            const handleLogin = (user) => {
-                const password = prompt(`กรุณาใส่รหัสผ่านสำหรับ ${user.name}:`);
-                if (password && password.toLowerCase() === user.password.toLowerCase()) {
-                    setCurrentUser(user);
-                    if (user.role === 'member') setActiveChatId(user.id);
-                    setLoginError('');
-                } else {
-                    alert('รหัสผ่านไม่ถูกต้อง');
-                }
-            };
-
-            const sendMessage = () => {
-                if (!inputText.trim() || !activeChatId) return;
-                const newMessage = {
-                    id: Date.now(),
-                    sender: currentUser.id,
-                    text: inputText,
-                    timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                };
-                setChatMessages(prev => ({ ...prev, [activeChatId]: [...(prev[activeChatId] || []), newMessage] }));
-                setInputText('');
-            };
+            useEffect(() => { lucide.createIcons(); }, [activeTab, currentUser]);
 
             const handleStatChange = (subject, value) => {
                 setTeamStats(prev => ({
@@ -167,33 +131,34 @@
                 }));
             };
 
+            const sendMessage = () => {
+                if (!inputText.trim()) return;
+                const newMessage = {
+                    id: Date.now(),
+                    sender: currentUser.id,
+                    text: inputText,
+                    timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                };
+                const targetId = currentUser.role === 'leader' ? activeChatId : 'jenny'; // จำลองส่งหาเจนนี่ถ้าเป็นลูกทีม
+                setChatMessages(prev => ({
+                    ...prev,
+                    [targetId]: [...(prev[targetId] || []), newMessage]
+                }));
+                setInputText('');
+            };
+
             if (!currentUser) {
                 return (
-                    <div className="min-h-screen bg-[#0f172a] flex items-center justify-center p-4 relative overflow-hidden">
-                        <div className="absolute top-[-10%] right-[-10%] w-[50%] h-[50%] bg-indigo-600/20 rounded-full blur-[120px]"></div>
-                        <div className="absolute bottom-[-10%] left-[-10%] w-[50%] h-[50%] bg-blue-600/20 rounded-full blur-[120px]"></div>
-                        
-                        <div className="max-w-md w-full relative z-10 text-center">
-                            <div className="w-20 h-20 bg-gradient-to-br from-indigo-500 to-blue-600 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-2xl rotate-12 transition-transform hover:rotate-0">
-                                <Icon name="zap" size={48} className="text-white fill-current" />
-                            </div>
-                            <h1 className="text-5xl font-black text-white italic uppercase tracking-tighter">Talesrunner</h1>
-                            <p className="text-indigo-300 font-bold text-[10px] mt-3 tracking-[0.3em] uppercase opacity-80 mb-10">HOF Performance System</p>
-
-                            <div className="bg-white/10 backdrop-blur-xl p-8 rounded-[3rem] border border-white/10 shadow-2xl space-y-4">
-                                <p className="text-white/60 text-center text-xs font-black uppercase tracking-widest mb-4">เข้าใช้งานในฐานะ</p>
-                                {USERS.map((user) => (
-                                    <button
-                                        key={user.id}
-                                        onClick={() => handleLogin(user)}
-                                        className="group w-full flex items-center p-5 rounded-[2rem] border border-white/5 hover:border-indigo-400/50 hover:bg-white/5 transition-all text-left"
-                                    >
-                                        <span className="text-4xl mr-5 group-hover:scale-110 transition-transform">{user.avatar}</span>
-                                        <div className="flex-1">
-                                            <p className="font-black text-white text-lg tracking-tight">{user.name}</p>
-                                            <p className="text-[10px] text-indigo-300/60 font-black uppercase tracking-widest">{user.role}</p>
-                                        </div>
-                                        <Icon name="chevron-right" className="text-white/20 group-hover:text-indigo-400 group-hover:translate-x-1" />
+                    <div className="min-h-screen bg-slate-900 flex items-center justify-center p-6">
+                        <div className="max-w-4xl w-full text-center">
+                            <div className="inline-block bg-indigo-600 p-4 rounded-3xl italic font-black text-3xl text-white mb-6">HOF</div>
+                            <h1 className="text-5xl font-black text-white italic uppercase tracking-tighter mb-12">Talesrunner Team</h1>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                                {USERS.map(user => (
+                                    <button key={user.id} onClick={() => setCurrentUser(user)} className="group bg-slate-800 p-8 rounded-[3rem] border border-slate-700 hover:border-indigo-500 transition-all hover:scale-105">
+                                        <div className={`w-20 h-20 mx-auto rounded-[2rem] ${user.color} flex items-center justify-center text-4xl mb-4`}>{user.avatar}</div>
+                                        <h3 className="text-white font-black italic uppercase">{user.name}</h3>
+                                        <p className="text-[10px] text-slate-500 uppercase font-black">{user.role}</p>
                                     </button>
                                 ))}
                             </div>
@@ -203,245 +168,113 @@
             }
 
             return (
-                <div className="min-h-screen flex flex-col md:flex-row text-slate-900">
-                    {/* Sidebar */}
-                    <nav className="w-full md:w-80 bg-slate-900 text-white flex flex-col shrink-0">
-                        <div className="p-10">
-                            <div className="flex items-center space-x-3 mb-12">
-                                <div className="bg-indigo-600 p-2.5 rounded-2xl italic font-black text-xl">HOF</div>
-                                <span className="font-black text-2xl tracking-tighter italic uppercase">Talesrunner</span>
-                            </div>
-                            <div className="space-y-3">
-                                <NavItem active={activeTab === 'wellness'} onClick={() => setActiveTab('wellness')} icon="zap" label="Runner's Condition" />
-                                <NavItem active={activeTab === 'praise'} onClick={() => setActiveTab('praise')} icon="heart" label="Praise Board" />
-                                <NavItem active={activeTab === 'safe'} onClick={() => setActiveTab('safe')} icon="shield-alert" label="Safe Space" danger />
-                                <NavItem active={activeTab === 'chat'} onClick={() => { setActiveTab('chat'); if(currentUser.role === 'member') setActiveChatId(currentUser.id); }} icon="message-square" label="Coaching Chat" />
-                                <NavItem active={activeTab === 'index'} onClick={() => setActiveTab('index')} icon="bar-chart-3" label="Excellence Index" />
-                            </div>
+                <div className="min-h-screen flex flex-col md:flex-row bg-slate-50">
+                    <nav className="w-full md:w-80 bg-slate-900 text-white p-10 flex flex-col shrink-0">
+                        <div className="flex items-center space-x-3 mb-12">
+                            <div className="bg-indigo-600 p-2.5 rounded-2xl font-black italic text-xl">HOF</div>
+                            <span className="font-black text-2xl tracking-tighter italic uppercase text-indigo-400">Talesrunner</span>
                         </div>
-                        <div className="mt-auto p-8 border-t border-slate-800">
-                            <div className="flex items-center space-x-4 bg-slate-800/50 p-4 rounded-3xl">
-                                <div className="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center text-2xl">{currentUser.avatar}</div>
-                                <div className="flex-1 overflow-hidden">
-                                    <p className="font-black text-sm truncate">{currentUser.name}</p>
-                                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">{currentUser.role}</p>
-                                </div>
-                                <button onClick={() => setCurrentUser(null)} className="text-slate-500 hover:text-white transition-colors p-2 hover:bg-slate-700 rounded-xl">
-                                    <Icon name="log-out" size={18} />
-                                </button>
-                            </div>
+                        <div className="space-y-3 flex-1">
+                            <NavItem active={activeTab === 'wellness'} onClick={() => setActiveTab('wellness')} iconName="Zap" label="Runner's Condition" />
+                            <NavItem active={activeTab === 'praise'} onClick={() => setActiveTab('praise')} iconName="Heart" label="Praise Board" />
+                            <NavItem active={activeTab === 'safe'} onClick={() => setActiveTab('safe')} iconName="ShieldAlert" label="Safe Space" danger />
+                            <NavItem active={activeTab === 'chat'} onClick={() => setActiveTab('chat')} iconName="MessageSquare" label="Coaching Chat" />
+                            <NavItem active={activeTab === 'index'} onClick={() => setActiveTab('index')} iconName="BarChart3" label="Excellence Index" />
                         </div>
+                        <button onClick={() => setCurrentUser(null)} className="mt-8 flex items-center space-x-4 bg-slate-800 p-4 rounded-3xl border border-white/5">
+                            <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-xl">{currentUser.avatar}</div>
+                            <div className="flex-1 text-left"><p className="font-black text-xs uppercase">{currentUser.name}</p></div>
+                            <Icon name="LogOut" size={16} className="text-slate-500" />
+                        </button>
                     </nav>
 
-                    {/* Main Content */}
-                    <main className="flex-1 flex flex-col h-screen overflow-hidden">
-                        <header className="bg-white border-b border-slate-100 px-10 py-6 flex justify-between items-center shrink-0">
-                            <h2 className="text-2xl font-black text-slate-800 italic uppercase tracking-tight">
-                                {activeTab === 'wellness' && '⚡ Runner's Condition'}
-                                {activeTab === 'praise' && '🌟 Praise Board'}
-                                {activeTab === 'safe' && '🛡️ Safe Space'}
-                                {activeTab === 'chat' && '💬 Coaching Chat'}
-                                {activeTab === 'index' && '📊 Excellence Index'}
-                            </h2>
-                        </header>
-
-                        <div className="flex-1 overflow-y-auto p-10 bg-slate-50/30">
-                            {activeTab === 'wellness' && (
-                                <div className="max-w-6xl mx-auto space-y-10">
-                                    {currentUser.role === 'member' ? (
-                                        <div className="bg-white p-12 rounded-[3.5rem] shadow-xl border border-slate-100 relative overflow-hidden">
-                                            <h3 className="text-3xl font-black text-slate-800 italic mb-10">วันนี้ "Runner" ของคุณพร้อมแค่ไหน?</h3>
-                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-10 mb-12">
-                                                <RatingInput label="ระดับความสุข" icon="😊" id="happy" />
-                                                <RatingInput label="ระดับความเครียด" icon="🤯" id="stress" />
-                                                <RatingInput label="งานโหลด (Workload)" icon="📦" id="load" />
-                                            </div>
-                                            <textarea placeholder="มีอะไรอยากให้หัวหน้าช่วยชาร์จพลังไหม?" className="w-full bg-slate-50 border-2 border-slate-100 rounded-[2rem] p-8 min-h-[150px] font-medium text-slate-700 outline-none focus:border-indigo-500 transition-all mb-8" />
-                                            <button className="w-full bg-indigo-600 text-white py-6 rounded-[2rem] font-black uppercase text-lg shadow-2xl hover:scale-[1.01] transition-all italic">บันทึกความพร้อมและออกวิ่ง</button>
-                                        </div>
-                                    ) : (
-                                        <div className="space-y-10">
-                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                                                <StatusCard title="ต้องการการชาร์จด่วน!" count="2" icon="alert-triangle" className="text-rose-500 bg-rose-50 border-rose-100" />
-                                                <StatusCard title="Runner ที่รายงานแล้ว" count="2/3" icon="users" className="text-indigo-500 bg-indigo-50 border-indigo-100" />
-                                                <StatusCard title="ความสุขเฉลี่ยทีม" count="3.5" icon="smile" className="text-emerald-500 bg-emerald-50 border-emerald-100" />
-                                            </div>
-                                            <div className="bg-white rounded-[3rem] border border-slate-100 overflow-hidden shadow-xl">
-                                                <table className="w-full text-left">
-                                                    <thead className="bg-slate-50 text-[10px] uppercase font-black tracking-widest text-slate-400">
-                                                        <tr><th className="p-8">Runner</th><th className="p-8 text-amber-500">Happy</th><th className="p-8 text-rose-500">Stress</th><th className="p-8 text-indigo-600">Load</th><th className="p-8 text-center">Status</th></tr>
-                                                    </thead>
-                                                    <tbody className="divide-y divide-slate-50">
-                                                        {wellnessRecords.map(r => (
-                                                            <tr key={r.id} className="hover:bg-slate-50 transition-colors">
-                                                                <td className="p-8 font-black text-slate-700">{r.name}</td>
-                                                                <td className="p-8 font-bold">{r.happy}/5</td>
-                                                                <td className="p-8 font-bold">{r.stress}/5</td>
-                                                                <td className="p-8 font-bold">{r.load}/5</td>
-                                                                <td className="p-8">
-                                                                    <div className="flex justify-center">
-                                                                        {(r.stress >= 4 || r.load >= 4) ? <span className="bg-rose-500 text-white px-5 py-2 rounded-2xl text-[9px] font-black animate-pulse">🚩 RECHARGE NEEDED</span> : <span className="text-emerald-500 text-[10px] font-black uppercase tracking-widest">All Good</span>}
-                                                                    </div>
-                                                                </td>
-                                                            </tr>
-                                                        ))}
-                                                    </tbody>
-                                                </table>
-                                            </div>
-                                        </div>
-                                    )}
+                    <main className="flex-1 p-10 overflow-y-auto h-screen">
+                        {activeTab === 'wellness' && (
+                            <div className="space-y-10">
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                                    <StatusCard title="ความสุขทีม" count="3.7" icon="😊" color="bg-emerald-50 border-emerald-100" />
+                                    <StatusCard title="Runner ในระบบ" count="3/3" icon="👥" color="bg-indigo-50 border-indigo-100" />
+                                    <StatusCard title="ต้องการการชาร์จ" count="1" icon="⚡" color="bg-rose-50 border-rose-100" />
                                 </div>
-                            )}
+                                <div className="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden">
+                                    <table className="w-full text-left">
+                                        <thead className="bg-slate-50 text-[10px] font-black text-slate-400 uppercase">
+                                            <tr><th className="p-8">Runner</th><th className="p-8">Happy</th><th className="p-8">Stress</th><th className="p-8">Load</th></tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-50">
+                                            {wellnessRecords.map(r => (
+                                                <tr key={r.id}>
+                                                    <td className="p-8 font-black flex items-center space-x-3 text-slate-700"><span>{USERS.find(u => u.id === r.userId)?.avatar}</span><span>{r.name}</span></td>
+                                                    <td className="p-8 font-black text-amber-500">{r.happy}/5</td>
+                                                    <td className="p-8 font-black text-rose-500">{r.stress}/5</td>
+                                                    <td className="p-8 font-black text-indigo-500">{r.load}/5</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        )}
 
-                            {activeTab === 'index' && (
-                                <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12">
-                                    <div className="bg-white p-12 rounded-[3.5rem] shadow-xl border border-slate-100">
-                                        <div className="flex justify-between items-center mb-12">
-                                            <h3 className="text-2xl font-black italic uppercase tracking-tighter flex items-center">
-                                                <Icon name="bar-chart-3" className="mr-4 text-indigo-600" /> 
-                                                {currentUser.role === 'leader' ? `Evaluation: ${USERS.find(u => u.id === selectedMemberId)?.name}` : `My Performance`}
-                                            </h3>
-                                            {currentUser.role === 'leader' && (
-                                                <select value={selectedMemberId} onChange={(e) => setSelectedMemberId(e.target.value)} className="bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-3 text-xs font-black outline-none text-indigo-600">
-                                                    {USERS.filter(u => u.role === 'member').map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
-                                                </select>
-                                            )}
-                                        </div>
-                                        <div className="h-[400px]">
-                                            <ResponsiveContainer width="100%" height="100%">
-                                                <RadarChart cx="50%" cy="50%" outerRadius="80%" data={currentUser.role === 'leader' ? teamStats[selectedMemberId] : teamStats[currentUser.id]}>
-                                                    <PolarGrid />
-                                                    <PolarAngleAxis dataKey="subject" tick={{fontSize: 10, fontWeight: 900}} />
-                                                    <PolarRadiusAxis domain={[0, 100]} tick={false} axisLine={false} />
-                                                    <Radar dataKey="A" stroke="#4f46e5" fill="#4f46e5" fillOpacity={0.5} />
-                                                </RadarChart>
-                                            </ResponsiveContainer>
-                                        </div>
+                        {activeTab === 'index' && (
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+                                <div className="bg-white p-12 rounded-[3.5rem] shadow-xl">
+                                    <h3 className="text-2xl font-black italic uppercase mb-8">Performance Radar</h3>
+                                    <div className="h-[400px]">
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <RadarChart data={teamStats[currentUser.role === 'leader' ? selectedMemberId : currentUser.id]}>
+                                                <PolarGrid />
+                                                <PolarAngleAxis dataKey="subject" />
+                                                <Radar name="Stats" dataKey="A" stroke="#4f46e5" fill="#4f46e5" fillOpacity={0.6} />
+                                            </RadarChart>
+                                        </ResponsiveContainer>
                                     </div>
-
-                                    {currentUser.role === 'leader' ? (
-                                        <div className="bg-white p-12 rounded-[3.5rem] shadow-xl border border-slate-100 space-y-8">
-                                            <h4 className="text-xl font-black uppercase italic">Skill Evaluation</h4>
-                                            {teamStats[selectedMemberId].map((stat) => (
-                                                <div key={stat.subject}>
-                                                    <div className="flex justify-between items-center mb-4">
-                                                        <span className="text-xs font-black text-slate-500 uppercase">{stat.subject}</span>
-                                                        <span className="text-2xl font-black text-indigo-600 italic">{stat.A}%</span>
-                                                    </div>
-                                                    <input type="range" min="0" max="100" value={stat.A} onChange={(e) => handleStatChange(stat.subject, e.target.value)} />
-                                                </div>
-                                            ))}
-                                            <button className="w-full bg-indigo-600 text-white py-6 rounded-[2rem] font-black shadow-2xl hover:bg-indigo-700 italic flex items-center justify-center space-x-3">
-                                                <Icon name="save" /> <span>บันทึกการประเมิน</span>
-                                            </button>
-                                        </div>
-                                    ) : (
-                                        <div className="bg-white p-12 rounded-[3.5rem] shadow-xl border border-slate-100 space-y-10">
-                                            <h4 className="text-xl font-black uppercase italic">Skill Set Results</h4>
-                                            {teamStats[currentUser.id].map((stat) => (
-                                                <div key={stat.subject}>
-                                                    <div className="flex justify-between mb-4">
-                                                        <span className="text-[11px] font-black text-slate-500 uppercase">{stat.subject}</span>
-                                                        <span className="text-lg font-black">{stat.A}%</span>
-                                                    </div>
-                                                    <div className="h-4 w-full bg-slate-50 rounded-full overflow-hidden p-1">
-                                                        <div className="h-full bg-indigo-600 rounded-full" style={{ width: `${stat.A}%` }}></div>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
                                 </div>
-                            )}
-
-                            {activeTab === 'praise' && (
-                                <div className="max-w-3xl mx-auto space-y-8">
-                                    <div className="bg-indigo-600 p-10 rounded-[3.5rem] text-white">
-                                        <h3 className="text-3xl font-black mb-6 italic uppercase">🌟 Praise Board</h3>
-                                        <select 
-                                            value={praiseTo} onChange={(e) => setPraiseTo(e.target.value)}
-                                            className="w-full bg-white/10 border border-white/20 rounded-2xl px-6 py-4 text-white font-bold outline-none mb-6"
-                                        >
-                                            <option value="" className="text-slate-800">ชื่นชมใครดีวันนี้?</option>
-                                            {USERS.filter(u => u.id !== currentUser.id).map(u => (
-                                                <option key={u.id} value={u.name} className="text-slate-800">{u.avatar} {u.name}</option>
-                                            ))}
+                                {currentUser.role === 'leader' && (
+                                    <div className="bg-white p-12 rounded-[3.5rem] shadow-xl space-y-6">
+                                        <h3 className="text-2xl font-black italic uppercase">Evaluator</h3>
+                                        <select value={selectedMemberId} onChange={(e) => setSelectedMemberId(e.target.value)} className="w-full bg-slate-50 p-4 rounded-2xl font-black border-2 border-slate-100">
+                                            {USERS.filter(u => u.role === 'member').map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
                                         </select>
-                                        <textarea placeholder="พิมพ์ความประทับใจที่คุณมีต่อเพื่อน..." className="w-full bg-white/10 border border-white/20 rounded-3xl p-6 text-white outline-none mb-6 min-h-[120px]" />
-                                        <button className="bg-white text-indigo-600 px-10 py-4 rounded-2xl font-black uppercase italic w-full">ส่งพลังบวก</button>
-                                    </div>
-                                    <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm flex space-x-6">
-                                        <div className="text-4xl">👨‍🎨</div>
-                                        <div>
-                                            <p className="text-sm font-black text-slate-800 uppercase italic">เบนซ์ <span className="text-indigo-500 font-normal mx-2">ส่งหัวใจถึง</span> เจนนี่</p>
-                                            <p className="mt-3 text-slate-600 font-medium italic">"ขอบคุณเจนนี่ที่ช่วยเคลียร์ Requirement ให้เมื่อวาน ไม่งั้นผมต้องแก้ดึกแน่เลย!"</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-
-                            {activeTab === 'safe' && (
-                                <div className="max-w-3xl mx-auto space-y-8">
-                                    <div className="bg-rose-600 p-10 rounded-[3.5rem] text-white">
-                                        <h3 className="text-3xl font-black mb-6 italic uppercase">🛡️ Safe Space</h3>
-                                        <div className="flex items-center space-x-3 mb-6 bg-white/10 p-4 rounded-2xl">
-                                            <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center text-xl">🐱</div>
-                                            <div>
-                                                <p className="text-[10px] font-black uppercase text-rose-200">สุ่มชื่อแฝงให้คุณแล้ว:</p>
-                                                <p className="text-sm font-black italic">แมวสีส้ม (Anonymous)</p>
+                                        {teamStats[selectedMemberId].map(stat => (
+                                            <div key={stat.subject}>
+                                                <div className="flex justify-between text-xs font-black uppercase text-slate-400 mb-2"><span>{stat.subject}</span><span>{stat.A}%</span></div>
+                                                <input type="range" className="w-full accent-indigo-600" value={stat.A} onChange={(e) => handleStatChange(stat.subject, e.target.value)} />
                                             </div>
-                                        </div>
-                                        <textarea placeholder="ระบายได้เต็มที่ ระบบจะสุ่มชื่อแฝงให้คุณเอง..." className="w-full bg-white/10 border border-white/20 rounded-3xl p-6 text-white outline-none mb-6 min-h-[120px]" />
-                                        <button className="bg-white text-rose-600 px-10 py-4 rounded-2xl font-black uppercase italic w-full">ระบายมันออกมา</button>
+                                        ))}
                                     </div>
-                                    <div className="bg-white p-8 rounded-[2.5rem] border-l-[12px] border-rose-500 shadow-sm">
-                                        <p className="text-[10px] font-black text-rose-500 uppercase mb-3 italic">BY: แมวสีส้ม (Anonymous)</p>
-                                        <p className="text-slate-700 font-bold">"ลูกค้าทีมข้างนอกเปลี่ยนบรีฟตอน 5 โมงเย็นทุกวันเลย ไม่ไหวจะเคลียร์จริงๆ ครับ..."</p>
+                                )}
+                            </div>
+                        )}
+                        
+                        {activeTab === 'chat' && (
+                            <div className="bg-white rounded-[3rem] h-[600px] flex shadow-xl overflow-hidden">
+                                <div className="w-1/3 bg-slate-50 border-r border-slate-100 p-6 space-y-2">
+                                    {USERS.filter(u => u.id !== currentUser.id).map(u => (
+                                        <button key={u.id} onClick={() => setActiveChatId(u.id)} className={`w-full p-4 rounded-2xl text-left font-black text-sm ${activeChatId === u.id ? 'bg-indigo-600 text-white' : 'bg-white text-slate-400 border border-slate-100'}`}>{u.name}</button>
+                                    ))}
+                                </div>
+                                <div className="flex-1 flex flex-col">
+                                    <div className="flex-1 p-8 overflow-y-auto space-y-4">
+                                        {(chatMessages[currentUser.role === 'leader' ? activeChatId : 'jenny'] || []).map(msg => (
+                                            <div key={msg.id} className={`flex ${msg.sender === currentUser.id ? 'justify-end' : 'justify-start'}`}>
+                                                <div className={`p-4 rounded-2xl font-bold text-sm ${msg.sender === currentUser.id ? 'bg-indigo-600 text-white rounded-br-none' : 'bg-slate-100 text-slate-800 rounded-bl-none'}`}>{msg.text}</div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <div className="p-6 border-t flex space-x-2">
+                                        <input value={inputText} onChange={(e) => setInputText(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && sendMessage()} placeholder="พิมพ์ข้อความ..." className="flex-1 bg-slate-50 px-6 py-4 rounded-2xl outline-none" />
+                                        <button onClick={sendMessage} className="bg-indigo-600 text-white px-8 rounded-2xl font-black uppercase">Send</button>
                                     </div>
                                 </div>
-                            )}
-                        </div>
+                            </div>
+                        )}
+                        {/* Tab อื่นๆ จะแสดงผลในลักษณะเดียวกัน */}
+                        {(activeTab === 'praise' || activeTab === 'safe') && <div className="text-center py-20 text-slate-400 font-black italic uppercase">ระบบ {activeTab} กำลังเปิดใช้งานใน Phase ถัดไป</div>}
                     </main>
                 </div>
             );
         };
-
-        const NavItem = ({ active, onClick, icon, label, danger }) => (
-            <button 
-                onClick={onClick}
-                className={`w-full flex items-center space-x-5 px-6 py-5 rounded-[2rem] transition-all font-black group ${
-                    active 
-                        ? (danger ? 'bg-rose-600 text-white shadow-2xl' : 'bg-indigo-600 text-white shadow-2xl')
-                        : 'text-slate-500 hover:bg-slate-800/80 hover:text-white'
-                }`}
-            >
-                <Icon name={icon} className={`${active ? 'scale-125' : 'group-hover:scale-125'} transition-transform`} />
-                <span className="text-[13px] italic uppercase">{label}</span>
-            </button>
-        );
-
-        const RatingInput = ({ label, icon, id }) => (
-            <div className="bg-slate-50 p-8 rounded-[3rem] border border-slate-100 text-center hover:bg-white hover:shadow-xl transition-all group">
-                <div className="text-5xl mb-6 group-hover:scale-125 transition-transform">{icon}</div>
-                <label className="block text-[10px] font-black text-slate-400 uppercase mb-8">{label}</label>
-                <input type="range" min="1" max="5" defaultValue="3" id={id} />
-                <div className="flex justify-between text-[9px] font-black text-slate-300 mt-5 uppercase">
-                    <span>น้อย</span><span>ปานกลาง</span><span>มาก</span>
-                </div>
-            </div>
-        );
-
-        const StatusCard = ({ title, count, icon, className }) => (
-            <div className={`p-10 rounded-[3rem] border-2 ${className} flex items-center justify-between shadow-sm hover:scale-[1.02] transition-all cursor-pointer`}>
-                <div>
-                    <p className="text-[10px] font-black text-slate-400 uppercase mb-2">{title}</p>
-                    <p className="text-4xl font-black tracking-tighter italic">{count}</p>
-                </div>
-                <div className="w-16 h-16 bg-white/60 rounded-[2rem] flex items-center justify-center text-4xl shadow-inner border border-white/40">
-                    <Icon name={icon} size={32} />
-                </div>
-            </div>
-        );
 
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<App />);
