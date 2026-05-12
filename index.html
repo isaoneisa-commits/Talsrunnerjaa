@@ -1,0 +1,595 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { 
+  Heart, 
+  ShieldAlert, 
+  MessageSquare, 
+  BarChart3, 
+  Send, 
+  UserCircle, 
+  ChevronRight, 
+  Plus, 
+  Award,
+  Users,
+  Clock,
+  Zap,
+  BookOpen,
+  LogOut,
+  Search,
+  Smile,
+  AlertTriangle,
+  Battery,
+  Save,
+  UserCheck,
+  Lock
+} from 'lucide-react';
+import { 
+  Radar, 
+  RadarChart, 
+  PolarGrid, 
+  PolarAngleAxis, 
+  PolarRadiusAxis, 
+  ResponsiveContainer
+} from 'recharts';
+
+const USERS = [
+  { id: 'leader', name: 'หัวหน้าทีม (Leader)', role: 'leader', avatar: '👑' },
+  { id: 'jenny', name: 'เจนนี่', role: 'member', avatar: '👩‍💻' },
+  { id: 'benz', name: 'เบนซ์', role: 'member', avatar: '👨‍🎨' },
+  { id: 'lukkaew', name: 'ลูกแก้ว', role: 'member', avatar: '👩‍🎨' },
+];
+
+const DEFAULT_STATS = [
+  { subject: 'Teamwork', A: 80, fullMark: 100 },
+  { subject: 'Efficiency', A: 80, fullMark: 100 },
+  { subject: 'Growth Mindset', A: 80, fullMark: 100 },
+  { subject: 'Curiosity', A: 80, fullMark: 100 },
+];
+
+const App = () => {
+  const [currentUser, setCurrentUser] = useState(null);
+  const [activeTab, setActiveTab] = useState('wellness');
+  const [selectedMemberId, setSelectedMemberId] = useState('jenny');
+  const [inputText, setInputText] = useState('');
+  const [activeChatId, setActiveChatId] = useState(null);
+  const [praiseTo, setPraiseTo] = useState('');
+  const chatEndRef = useRef(null);
+
+  // Wellness Records State
+  const [wellnessRecords, setWellnessRecords] = useState([
+    { id: 1, userId: 'jenny', name: 'เจนนี่', happy: 4, stress: 2, load: 5, note: 'งานแก้ด่วนเข้ามาเยอะมากค่ะ', timestamp: '09:00 AM' },
+    { id: 2, userId: 'benz', name: 'เบนซ์', happy: 2, stress: 4, load: 3, note: 'นอนน้อย แต่นอนนะ', timestamp: '10:30 AM' },
+  ]);
+
+  // Excellence Index State
+  const [teamStats, setTeamStats] = useState({
+    jenny: JSON.parse(JSON.stringify(DEFAULT_STATS)),
+    benz: JSON.parse(JSON.stringify(DEFAULT_STATS)),
+    lukkaew: JSON.parse(JSON.stringify(DEFAULT_STATS)),
+  });
+
+  // Chat Messages State
+  const [chatMessages, setChatMessages] = useState({
+    jenny: [
+      { id: 1, sender: 'leader', text: 'เจนนี่ งานชิ้นนี้ทำได้ดีมากครับ!', timestamp: '10:00' },
+      { id: 2, sender: 'jenny', text: 'ขอบคุณค่ะหัวหน้า กำลังปั่นโปรเจกต์ต่อไปอยู่ค่ะ', timestamp: '10:05' }
+    ],
+    benz: [
+      { id: 1, sender: 'leader', text: 'เบนซ์ ไหวไหม เห็นงานโหลดเยอะ?', timestamp: '11:00' }
+    ],
+    lukkaew: []
+  });
+
+  const scrollToBottom = () => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    if (activeTab === 'chat') scrollToBottom();
+  }, [chatMessages, activeChatId, activeTab]);
+
+  const handleStatChange = (subject, value) => {
+    setTeamStats(prev => ({
+      ...prev,
+      [selectedMemberId]: prev[selectedMemberId].map(s => 
+        s.subject === subject ? { ...s, A: parseInt(value) } : s
+      )
+    }));
+  };
+
+  const sendMessage = () => {
+    if (!inputText.trim() || !activeChatId) return;
+
+    const newMessage = {
+      id: Date.now(),
+      sender: currentUser.id,
+      text: inputText,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    };
+
+    setChatMessages(prev => ({
+      ...prev,
+      [activeChatId]: [...(prev[activeChatId] || []), newMessage]
+    }));
+    setInputText('');
+  };
+
+  if (!currentUser) {
+    return (
+      <div className="min-h-screen bg-[#0f172a] flex items-center justify-center p-4 font-sans relative overflow-hidden">
+        {/* Background Decorations */}
+        <div className="absolute top-[-10%] right-[-10%] w-[50%] h-[50%] bg-indigo-600/20 rounded-full blur-[120px]"></div>
+        <div className="absolute bottom-[-10%] left-[-10%] w-[50%] h-[50%] bg-blue-600/20 rounded-full blur-[120px]"></div>
+        
+        <div className="max-w-md w-full relative z-10">
+          <div className="text-center mb-10">
+            <div className="w-20 h-20 bg-gradient-to-br from-indigo-500 to-blue-600 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-2xl shadow-indigo-500/40 rotate-12 transition-transform hover:rotate-0 duration-500">
+              <Zap className="text-white w-12 h-12" fill="white" />
+            </div>
+            <h1 className="text-5xl font-black text-white tracking-tighter italic uppercase">Talesrunner</h1>
+            <p className="text-indigo-300 font-bold text-[10px] mt-3 tracking-[0.3em] uppercase opacity-80">HOF Performance System</p>
+          </div>
+
+          <div className="bg-white/10 backdrop-blur-xl p-8 rounded-[3rem] border border-white/10 shadow-2xl space-y-4">
+            <p className="text-white/60 text-center text-xs font-black uppercase tracking-widest mb-4">เข้าใช้งานในฐานะ</p>
+            {USERS.map((user) => (
+              <button
+                key={user.id}
+                onClick={() => {
+                  setCurrentUser(user);
+                  if (user.role === 'member') setActiveChatId(user.id);
+                }}
+                className="group w-full flex items-center p-5 rounded-[2rem] border border-white/5 hover:border-indigo-400/50 hover:bg-white/5 transition-all duration-300 text-left"
+              >
+                <span className="text-4xl mr-5 group-hover:scale-110 transition-transform duration-300">{user.avatar}</span>
+                <div className="flex-1">
+                  <p className="font-black text-white text-lg tracking-tight">{user.name}</p>
+                  <p className="text-[10px] text-indigo-300/60 font-black uppercase tracking-widest">{user.role}</p>
+                </div>
+                <ChevronRight className="text-white/20 group-hover:text-indigo-400 group-hover:translate-x-1 transition-all" />
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row font-sans text-slate-900">
+      {}
+      <nav className="w-full md:w-80 bg-slate-900 text-white flex flex-col shrink-0">
+        <div className="p-10 hidden md:block">
+          <div className="flex items-center space-x-3 mb-12">
+            <div className="bg-indigo-600 p-2.5 rounded-2xl italic font-black text-xl shadow-lg shadow-indigo-500/20">HOF</div>
+            <span className="font-black text-2xl tracking-tighter italic uppercase">Talesrunner</span>
+          </div>
+          <div className="space-y-3">
+            <NavItem active={activeTab === 'wellness'} onClick={() => setActiveTab('wellness')} icon={<Zap size={20} />} label="Runner's Condition" />
+            <NavItem active={activeTab === 'praise'} onClick={() => setActiveTab('praise')} icon={<Heart size={20} />} label="Praise Board" />
+            <NavItem active={activeTab === 'safe'} onClick={() => setActiveTab('safe')} icon={<ShieldAlert size={20} />} label="Safe Space" danger />
+            <NavItem active={activeTab === 'chat'} onClick={() => { setActiveTab('chat'); if(currentUser.role === 'member') setActiveChatId(currentUser.id); }} icon={<MessageSquare size={20} />} label="Coaching Chat" />
+            <NavItem active={activeTab === 'index'} onClick={() => setActiveTab('index')} icon={<BarChart3 size={20} />} label="Excellence Index" />
+          </div>
+        </div>
+        <div className="mt-auto p-8 border-t border-slate-800 hidden md:block">
+          <div className="flex items-center space-x-4 bg-slate-800/50 p-4 rounded-3xl">
+            <div className="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center text-2xl shadow-inner">{currentUser.avatar}</div>
+            <div className="flex-1 overflow-hidden">
+              <p className="font-black text-sm truncate">{currentUser.name}</p>
+              <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">{currentUser.role}</p>
+            </div>
+            <button onClick={() => setCurrentUser(null)} className="text-slate-500 hover:text-white transition-colors p-2 hover:bg-slate-700 rounded-xl">
+              <LogOut size={18} />
+            </button>
+          </div>
+        </div>
+      </nav>
+
+      {/* Main Content Area */}
+      <main className="flex-1 flex flex-col h-screen overflow-hidden">
+        <header className="bg-white border-b border-slate-100 px-10 py-6 flex justify-between items-center shrink-0">
+          <h2 className="text-2xl font-black text-slate-800 italic uppercase tracking-tight">
+            {activeTab === 'wellness' && '⚡ Runner\'s Condition'}
+            {activeTab === 'praise' && '🌟 Praise Board'}
+            {activeTab === 'safe' && '🛡️ Safe Space'}
+            {activeTab === 'chat' && '💬 Coaching Chat'}
+            {activeTab === 'index' && '📊 Excellence Index'}
+          </h2>
+        </header>
+
+        <div className="flex-1 overflow-y-auto p-4 md:p-10 bg-slate-50/30">
+          
+          {}
+          {activeTab === 'chat' && (
+            <div className="h-[calc(100vh-200px)] flex bg-white rounded-[3rem] overflow-hidden shadow-xl border border-slate-100">
+              <div className="w-1/3 border-r border-slate-50 bg-slate-50/50 flex flex-col">
+                 <div className="p-8 border-b border-slate-100">
+                    <h4 className="font-black italic uppercase text-slate-400 text-[10px] tracking-[0.2em]">Coaching Rooms</h4>
+                 </div>
+                 <div className="flex-1 overflow-y-auto p-4 space-y-2">
+                   {currentUser.role === 'leader' ? (
+                      USERS.filter(u => u.role === 'member').map(u => (
+                        <button 
+                          key={u.id} 
+                          onClick={() => setActiveChatId(u.id)}
+                          className={`w-full p-4 rounded-2xl text-left font-bold transition-all duration-200 flex items-center justify-between ${activeChatId === u.id ? 'bg-indigo-600 text-white shadow-lg' : 'bg-white text-slate-600 hover:bg-white shadow-sm hover:shadow-md'}`}
+                        >
+                          <div className="flex items-center">
+                            <span className="mr-3 text-2xl">{u.avatar}</span> {u.name}
+                          </div>
+                          {activeChatId !== u.id && chatMessages[u.id]?.length > 0 && <div className="w-2 h-2 bg-rose-500 rounded-full"></div>}
+                        </button>
+                      ))
+                   ) : (
+                    <button className="w-full p-4 bg-indigo-600 rounded-2xl text-left font-bold text-white shadow-lg flex items-center">
+                       <span className="mr-3 text-2xl">👑</span> หัวหน้าทีม (Leader)
+                    </button>
+                   )}
+                 </div>
+              </div>
+
+              <div className="flex-1 flex flex-col bg-white">
+                {activeChatId ? (
+                  <>
+                    <div className="px-8 py-5 border-b border-slate-50 flex items-center justify-between bg-white/80 backdrop-blur-md sticky top-0 z-10">
+                       <div className="flex items-center space-x-4">
+                          <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-xl">
+                             {currentUser.role === 'leader' ? USERS.find(u => u.id === activeChatId)?.avatar : '👑'}
+                          </div>
+                          <div>
+                             <p className="font-black text-slate-800 uppercase tracking-tighter">
+                               {currentUser.role === 'leader' ? USERS.find(u => u.id === activeChatId)?.name : 'Coaching with Leader'}
+                             </p>
+                             <div className="flex items-center text-[10px] font-black text-emerald-500 uppercase tracking-widest">
+                                <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full mr-2 animate-pulse"></span> Active Now
+                             </div>
+                          </div>
+                       </div>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto p-8 space-y-6">
+                       {chatMessages[activeChatId]?.length === 0 ? (
+                         <div className="h-full flex flex-col items-center justify-center text-slate-300">
+                            <Smile size={48} className="mb-4 opacity-20" />
+                            <p className="text-xs font-black uppercase tracking-widest">เริ่มการสนทนาเพื่อ Coaching ได้เลย</p>
+                         </div>
+                       ) : (
+                         chatMessages[activeChatId]?.map(msg => (
+                           <div key={msg.id} className={`flex ${msg.sender === currentUser.id ? 'justify-end' : 'justify-start'}`}>
+                              <div className={`max-w-[70%] group ${msg.sender === currentUser.id ? 'items-end' : 'items-start'} flex flex-col`}>
+                                 <div className={`p-4 rounded-3xl text-sm font-medium shadow-sm ${
+                                   msg.sender === currentUser.id 
+                                     ? 'bg-indigo-600 text-white rounded-br-none' 
+                                     : 'bg-slate-100 text-slate-800 rounded-bl-none'
+                                 }`}>
+                                    {msg.text}
+                                 </div>
+                                 <span className="text-[9px] font-bold text-slate-400 mt-2 uppercase tracking-tighter opacity-0 group-hover:opacity-100 transition-opacity">
+                                    {msg.timestamp}
+                                 </span>
+                              </div>
+                           </div>
+                         ))
+                       )}
+                       <div ref={chatEndRef} />
+                    </div>
+
+                    <div className="p-6 border-t border-slate-50 bg-white">
+                       <div className="flex items-center space-x-3 bg-slate-50 p-2 rounded-[2rem] border border-slate-100 focus-within:border-indigo-300 transition-all">
+                          <input 
+                             type="text" 
+                             value={inputText}
+                             onChange={(e) => setInputText(e.target.value)}
+                             onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
+                             placeholder="พิมพ์ข้อความที่นี่..."
+                             className="flex-1 bg-transparent border-none focus:ring-0 px-6 py-2 font-medium text-slate-700"
+                          />
+                          <button 
+                             onClick={sendMessage}
+                             className="bg-indigo-600 text-white p-3 rounded-full hover:scale-105 transition-transform shadow-lg shadow-indigo-200"
+                          >
+                             <Send size={20} fill="currentColor" />
+                          </button>
+                       </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex-1 flex flex-col items-center justify-center text-slate-300 p-10 text-center">
+                    <div className="w-24 h-24 bg-slate-50 rounded-[2.5rem] flex items-center justify-center mb-6">
+                       <MessageSquare size={48} className="opacity-10" />
+                    </div>
+                    <h3 className="text-lg font-black text-slate-400 uppercase italic mb-2 tracking-tighter">Private Coaching</h3>
+                    <p className="text-xs font-bold text-slate-400/60 max-w-xs leading-relaxed uppercase">
+                       เลือกสมาชิกในทีมจากรายการด้านซ้าย <br/>เพื่อเริ่มต้นการพูดคุยแบบส่วนตัว
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {}
+          {activeTab === 'wellness' && (
+            <div className="max-w-6xl mx-auto space-y-10 pb-20">
+              {currentUser.role === 'member' ? (
+                <div className="bg-white p-12 rounded-[3.5rem] shadow-xl border border-slate-100 relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-50/50 rounded-full -mr-32 -mt-32 blur-3xl"></div>
+                  <h3 className="text-3xl font-black text-slate-800 italic mb-3 relative">วันนี้ "Runner" ของคุณพร้อมแค่ไหน?</h3>
+                  <p className="text-slate-400 font-bold text-sm mb-12 uppercase tracking-widest opacity-60">Daily Condition Check-in</p>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-10 mb-12">
+                    <RatingInput label="ระดับความสุข" icon="😊" id="val-happy" color="text-amber-500" />
+                    <RatingInput label="ระดับความเครียด" icon="🤯" id="val-stress" color="text-rose-500" />
+                    <RatingInput label="งานโหลด (Workload)" icon="📦" id="val-load" color="text-indigo-500" />
+                  </div>
+                  <div className="space-y-4 mb-10">
+                     <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-2">โน้ตถึงหัวหน้า (Optional)</label>
+                     <textarea placeholder="มีอะไรอยากให้หัวหน้าช่วยชาร์จพลังไหม?" className="w-full bg-slate-50 border-2 border-slate-100 rounded-[2rem] p-8 min-h-[150px] font-medium text-slate-700 outline-none focus:border-indigo-500 transition-all" />
+                  </div>
+                  <button className="w-full bg-indigo-600 text-white py-6 rounded-[2rem] font-black uppercase text-lg shadow-2xl shadow-indigo-200 hover:scale-[1.01] active:scale-[0.98] transition-all tracking-tighter italic">
+                    บันทึกความพร้อมและออกวิ่ง
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-10">
+                   <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                      <StatusCard title="ต้องการการชาร์จด่วน!" count="2" icon={<AlertTriangle className="text-rose-500" />} color="bg-rose-50 border-rose-100" />
+                      <StatusCard title="Runner ที่รายงานแล้ว" count="2/3" icon={<Users className="text-indigo-500" />} color="bg-indigo-50 border-indigo-100" />
+                      <StatusCard title="ความสุขเฉลี่ยทีม" count="3.5" icon={<Smile className="text-emerald-500" />} color="bg-emerald-50 border-emerald-100" />
+                   </div>
+                   <div className="bg-white rounded-[3rem] border border-slate-100 overflow-hidden shadow-xl">
+                      <div className="p-8 border-b border-slate-50 bg-slate-50/30">
+                         <h4 className="font-black italic uppercase text-slate-800 text-sm tracking-tighter">Team Condition Overview</h4>
+                      </div>
+                      <table className="w-full text-left">
+                        <thead className="bg-slate-50/50 text-[10px] uppercase font-black tracking-widest text-slate-400 border-b border-slate-50">
+                          <tr><th className="p-8">Runner</th><th className="p-8">Happy</th><th className="p-8">Stress</th><th className="p-8">Load</th><th className="p-8 text-center">Status</th></tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-50">
+                          {wellnessRecords.map(r => (
+                            <tr key={r.id} className="hover:bg-slate-50/50 transition-colors">
+                              <td className="p-8 font-black text-slate-700">{r.name}</td>
+                              <td className="p-8 font-bold text-amber-600">{r.happy}/5</td>
+                              <td className="p-8 font-bold text-rose-500">{r.stress}/5</td>
+                              <td className="p-8 font-bold text-indigo-600">{r.load}/5</td>
+                              <td className="p-8">
+                                <div className="flex justify-center">
+                                  {(r.stress >= 4 || r.load >= 4) 
+                                    ? <span className="bg-rose-500 text-white px-5 py-2 rounded-2xl text-[9px] font-black animate-pulse shadow-lg shadow-rose-200">🚩 RECHARGE NEEDED</span> 
+                                    : <span className="text-emerald-500 text-[10px] font-black uppercase tracking-widest flex items-center"><Zap size={12} className="mr-2" /> All Good</span>}
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                   </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {}
+          {activeTab === 'index' && (
+            <div className="max-w-7xl mx-auto pb-20">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+                <div className="bg-white p-12 rounded-[3.5rem] shadow-xl border border-slate-100">
+                  <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12">
+                    <h3 className="text-2xl font-black flex items-center italic uppercase tracking-tighter text-slate-800">
+                      <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white mr-4 shadow-lg">
+                        <BarChart3 size={20} />
+                      </div>
+                      {currentUser.role === 'leader' ? `Evaluation: ${USERS.find(u => u.id === selectedMemberId)?.name}` : `My Performance Profile`}
+                    </h3>
+                    {currentUser.role === 'leader' && (
+                      <select 
+                        value={selectedMemberId} 
+                        onChange={(e) => setSelectedMemberId(e.target.value)}
+                        className="bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-3 text-xs font-black outline-none text-indigo-600 focus:border-indigo-500 transition-all"
+                      >
+                        {USERS.filter(u => u.role === 'member').map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+                      </select>
+                    )}
+                  </div>
+                  
+                  <div className="h-[450px] w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <RadarChart cx="50%" cy="50%" outerRadius="80%" data={currentUser.role === 'leader' ? teamStats[selectedMemberId] : teamStats[currentUser.id]}>
+                        <PolarGrid stroke="#f1f5f9" strokeWidth={2} />
+                        <PolarAngleAxis dataKey="subject" tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 900 }} />
+                        <PolarRadiusAxis angle={30} domain={[0, 100]} axisLine={false} tick={false} />
+                        <Radar
+                          name="Performance"
+                          dataKey="A"
+                          stroke="#4f46e5"
+                          strokeWidth={4}
+                          fill="#4f46e5"
+                          fillOpacity={0.5}
+                        />
+                      </RadarChart>
+                    </ResponsiveContainer>
+                  </div>
+
+                  <div className="mt-10 p-8 bg-slate-900 rounded-[2.5rem] text-white shadow-2xl shadow-slate-200">
+                    <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 mb-4">Management Strategy Note</p>
+                    <p className="text-sm leading-relaxed italic opacity-80 font-medium">
+                      {currentUser.role === 'leader' 
+                        ? `คุณกำลังกำหนดทิศทางการเติบโตให้กับ ${USERS.find(u => u.id === selectedMemberId)?.name} ข้อมูลนี้จะสะท้อนความเป็นมืออาชีพของทีม HOF ในภาพรวม`
+                        : `คุณมีความโดดเด่นในด้าน ${teamStats[currentUser.id].reduce((prev, current) => (prev.A > current.A) ? prev : current).subject} ข้อมูลนี้ได้รับการยืนยันโดยหัวหน้าทีม`}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-8">
+                  {currentUser.role === 'leader' ? (
+                    <div className="bg-white p-12 rounded-[3.5rem] shadow-xl border border-slate-100">
+                      <div className="flex items-center space-x-4 mb-10">
+                        <div className="w-14 h-14 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600 shadow-inner">
+                           <UserCheck size={28} />
+                        </div>
+                        <div>
+                          <h4 className="text-xl font-black text-slate-800 uppercase italic tracking-tighter">Evaluation Center</h4>
+                          <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest">ประเมินทักษะ: {USERS.find(u => u.id === selectedMemberId)?.name}</p>
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-12">
+                        {teamStats[selectedMemberId].map((stat) => (
+                          <div key={stat.subject} className="group">
+                            <div className="flex justify-between items-center mb-4">
+                              <span className="text-xs font-black text-slate-500 uppercase tracking-[0.1em]">{stat.subject}</span>
+                              <span className="text-2xl font-black text-indigo-600 italic">{stat.A}%</span>
+                            </div>
+                            <input 
+                              type="range" 
+                              min="0" max="100" 
+                              value={stat.A}
+                              onChange={(e) => handleStatChange(stat.subject, e.target.value)}
+                              className="w-full h-2.5 bg-slate-100 rounded-full appearance-none cursor-pointer accent-indigo-600 hover:bg-slate-200 transition-colors"
+                            />
+                          </div>
+                        ))}
+                      </div>
+
+                      <button className="w-full mt-12 bg-indigo-600 text-white py-6 rounded-[2rem] font-black flex items-center justify-center space-x-3 shadow-2xl shadow-indigo-100 hover:bg-indigo-700 transition-all uppercase tracking-tighter italic active:scale-95">
+                        <Save size={20} />
+                        <span>บันทึกการประเมินทักษะ</span>
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="bg-white p-12 rounded-[3.5rem] shadow-xl border border-slate-100">
+                      <h4 className="text-xl font-black text-slate-800 uppercase italic mb-10 flex items-center">
+                        <Award className="text-amber-500 mr-4" size={28} /> 
+                        Skill Set Results
+                      </h4>
+                      <div className="space-y-10">
+                        {teamStats[currentUser.id].map((stat) => (
+                          <div key={stat.subject}>
+                            <div className="flex justify-between mb-4">
+                              <span className="text-[11px] font-black text-slate-500 uppercase tracking-widest">{stat.subject}</span>
+                              <span className="text-lg font-black text-slate-900 italic">{stat.A}%</span>
+                            </div>
+                            <div className="h-4 w-full bg-slate-50 rounded-full overflow-hidden p-1 shadow-inner">
+                              <div 
+                                className="h-full bg-gradient-to-r from-indigo-500 to-blue-400 rounded-full transition-all duration-1000 ease-out" 
+                                style={{ width: `${stat.A}%` }}
+                              />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="mt-12 bg-indigo-50/50 p-8 rounded-[2.5rem] border border-indigo-100/50">
+                         <p className="text-xs font-black text-indigo-600 mb-3 uppercase tracking-tighter flex items-center">
+                           <ShieldAlert size={16} className="mr-2" />
+                           Leader Feedback
+                         </p>
+                         <p className="text-sm text-slate-600 italic leading-relaxed font-medium">
+                           "คะแนนเหล่านี้สะท้อนถึงความมุ่งมั่นของคุณในโปรเจกต์ล่าสุด รักษามาตรฐานนี้ไว้นะ ทีม HOF ภูมิใจที่มีคุณ!"
+                         </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {}
+          {activeTab === 'praise' && (
+             <div className="max-w-3xl mx-auto space-y-8 pb-20">
+                <div className="bg-indigo-600 p-10 rounded-[3.5rem] shadow-2xl shadow-indigo-100 text-white relative overflow-hidden">
+                   <div className="absolute -right-10 -top-10 w-40 h-40 bg-white/10 rounded-full blur-2xl"></div>
+                   <h3 className="text-3xl font-black mb-6 italic uppercase tracking-tight">🌟 Praise Board</h3>
+                   
+                   {/* Recipient Selector */}
+                   <div className="mb-6 space-y-3">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-indigo-200 ml-2">ชื่นชมใครดีวันนี้?</label>
+                      <select 
+                        value={praiseTo}
+                        onChange={(e) => setPraiseTo(e.target.value)}
+                        className="w-full bg-white/10 border border-white/20 rounded-2xl px-6 py-4 text-white font-bold outline-none appearance-none"
+                      >
+                        <option value="" className="text-slate-800">เลือกเพื่อนร่วมทีม...</option>
+                        {USERS.filter(u => u.id !== currentUser.id).map(u => (
+                          <option key={u.id} value={u.name} className="text-slate-800">{u.avatar} {u.name}</option>
+                        ))}
+                      </select>
+                   </div>
+
+                   <textarea placeholder="พิมพ์ความประทับใจที่คุณมีต่อเพื่อน..." className="w-full bg-white/10 border border-white/20 rounded-3xl p-6 text-white placeholder-indigo-200 outline-none focus:bg-white/20 transition-all font-medium mb-6 min-h-[120px]" />
+                   <button className="bg-white text-indigo-600 px-10 py-4 rounded-2xl font-black uppercase tracking-tighter italic hover:scale-105 active:scale-95 transition-all shadow-xl w-full">ส่งพลังบวก</button>
+                </div>
+                {/* Mock Praise Post */}
+                <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm flex space-x-6">
+                   <div className="text-4xl">👨‍🎨</div>
+                   <div>
+                      <p className="text-sm font-black text-slate-800 uppercase italic">เบนซ์ <span className="text-indigo-500 font-normal mx-2">ส่งหัวใจถึง</span> เจนนี่</p>
+                      <p className="mt-3 text-slate-600 font-medium italic">"ขอบคุณเจนนี่ที่ช่วยเคลียร์ Requirement ให้เมื่อวาน ไม่งั้นผมต้องแก้ดึกแน่เลย!"</p>
+                   </div>
+                </div>
+             </div>
+          )}
+
+          {}
+          {activeTab === 'safe' && (
+             <div className="max-w-3xl mx-auto space-y-8 pb-20">
+                <div className="bg-rose-600 p-10 rounded-[3.5rem] shadow-2xl shadow-rose-100 text-white">
+                   <h3 className="text-3xl font-black mb-6 italic uppercase tracking-tight">🛡️ Safe Space</h3>
+                   <div className="flex items-center space-x-3 mb-6 bg-white/10 p-4 rounded-2xl border border-white/10">
+                      <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center text-xl">🐱</div>
+                      <div>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-rose-200">สุ่มชื่อแฝงให้คุณแล้ว:</p>
+                        <p className="text-sm font-black italic">แมวสีส้ม (Anonymous)</p>
+                      </div>
+                   </div>
+                   <textarea placeholder="ระบายได้เต็มที่ ระบบจะสุ่มชื่อแฝงให้คุณเอง..." className="w-full bg-white/10 border border-white/20 rounded-3xl p-6 text-white placeholder-rose-200 outline-none focus:bg-white/20 transition-all font-medium mb-6 min-h-[120px]" />
+                   <button className="bg-white text-rose-600 px-10 py-4 rounded-2xl font-black uppercase tracking-tighter italic hover:scale-105 active:scale-95 transition-all shadow-xl w-full">ระบายมันออกมา</button>
+                </div>
+                {/* Mock Safe Post */}
+                <div className="bg-white p-8 rounded-[2.5rem] border-l-[12px] border-rose-500 shadow-sm">
+                   <p className="text-[10px] font-black text-rose-500 uppercase tracking-[0.3em] mb-3 italic">BY: แมวสีส้ม (Anonymous)</p>
+                   <p className="text-slate-700 font-bold leading-relaxed">"ลูกค้าทีมข้างนอกเปลี่ยนบรีฟตอน 5 โมงเย็นทุกวันเลย ไม่ไหวจะเคลียร์จริงๆ ครับ..."</p>
+                </div>
+             </div>
+          )}
+        </div>
+      </main>
+    </div>
+  );
+};
+
+const NavItem = ({ active, onClick, icon, label, danger }) => (
+  <button 
+    onClick={onClick}
+    className={`w-full flex items-center space-x-5 px-6 py-5 rounded-[2rem] transition-all duration-300 font-black group ${
+      active 
+        ? (danger ? 'bg-rose-600 text-white shadow-2xl shadow-rose-900/40' : 'bg-indigo-600 text-white shadow-2xl shadow-indigo-900/40')
+        : 'text-slate-500 hover:bg-slate-800/80 hover:text-white'
+    }`}
+  >
+    <span className={`${active ? 'scale-125' : 'group-hover:scale-125'} transition-transform duration-300`}>{icon}</span>
+    <span className="text-[13px] tracking-tight italic uppercase">{label}</span>
+  </button>
+);
+
+const RatingInput = ({ label, icon, id, color }) => (
+  <div className="bg-slate-50 p-8 rounded-[3rem] border border-slate-100 text-center transition-all hover:bg-white hover:shadow-xl hover:-translate-y-1 group">
+    <div className={`text-5xl mb-6 group-hover:scale-125 transition-transform duration-300`}>{icon}</div>
+    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-8">{label}</label>
+    <input type="range" min="1" max="5" defaultValue="3" id={id} className="w-full h-2.5 bg-slate-200 rounded-full appearance-none accent-indigo-600 cursor-pointer" />
+    <div className="flex justify-between text-[9px] font-black text-slate-300 mt-5 uppercase tracking-widest">
+      <span>น้อย</span><span>ปานกลาง</span><span>มาก</span>
+    </div>
+  </div>
+);
+
+const StatusCard = ({ title, count, icon, color }) => (
+  <div className={`p-10 rounded-[3rem] border-2 ${color} flex items-center justify-between shadow-sm transition-all hover:scale-[1.02] hover:shadow-lg cursor-pointer`}>
+    <div>
+      <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">{title}</p>
+      <p className="text-4xl font-black text-slate-800 tracking-tighter italic">{count}</p>
+    </div>
+    <div className="w-16 h-16 bg-white/60 rounded-[2rem] flex items-center justify-center text-4xl shadow-inner border border-white/40">{icon}</div>
+  </div>
+);
+
+export default App;
